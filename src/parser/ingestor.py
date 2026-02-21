@@ -45,7 +45,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
 
              # Determinar si es método de clase
             parent_class = None
-            for parent in ast.walk(tree):
+            for parent in ast.walk(file_tree):
                 if isinstance(parent, ast.ClassDef):
                     for item in ast.walk(parent):
                         if item is node:
@@ -55,7 +55,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
             func_info = {
                 "name": node.name,
                 "type": "async_function" if isinstance(node, ast.AsyncFunctionDef) else "function",
-                "file": str(filepath),
+                "file": str(file_path),
                 "line_start": node.lineno,
                 "line_end": node.end_lineno,
                 "col_offset": node.col_offset,
@@ -103,13 +103,17 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] = None) -> dict:
     return result
 
 
+"""
+Ejemplo de uso:
+python ingestor.py /ruta/al/repositorio
+"""
 if __name__ == "__main__":
     import sys
 
     repo = sys.argv[1] if len(sys.argv) > 1 else "."
     data = analyze_repository(repo)
 
-    output_file = "repo_functions.json"
+    output_file = "src\\parser\\output\\repo_functions.json"
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
