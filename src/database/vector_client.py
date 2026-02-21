@@ -24,10 +24,10 @@ class VectorClient:
         documents = []
         for entry in json_data:
             # El contenido que queremos vectorizar es el docstring + nombre
-            content = f"Función: {entry['name']}\nDescripción: {entry['docstring']}"
+            content = f"Función: {entry['name']}\nDescripción: {entry.get('docstring') or ''}"
 
             # Los metadatos son cruciales para filtrar después
-            metadata = {"file": entry["file"], "name": entry["name"], "line": entry["line"]}
+            metadata = {"file": entry["file"], "name": entry["name"], "line": entry["line_start"]}
 
             documents.append(Document(page_content=content, metadata=metadata))
 

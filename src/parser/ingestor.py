@@ -114,13 +114,13 @@ def run_ingestor(repo_path: str) -> dict:
 
     # Iteramos sobre las funciones del repositorio
     for func in json_data["functions"]:
-        graph.add_function(func)
+        graph.add_function(func["file"], func["name"], func.get("docstring") or "")
 
     graph.close()  # Cerramos la conexion con la base de datos
 
     # 3. Indexamos los vectores
     vector_client = VectorClient()
-    vector_client.add_code_units(json_data)
+    vector_client.add_code_units(json_data["functions"])
 
     print("Ingesta completada exitosamente")
     return json_data
