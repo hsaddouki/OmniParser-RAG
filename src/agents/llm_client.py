@@ -8,17 +8,17 @@ from utils import trace
 logger = logging.getLogger("omniparser.llm_client")
 
 PROMPT_TEMPLATE = """
-Eres un Arquitecto de Software Senior. Basándote en el siguiente contexto de código
-extraído de un Grafo de Conocimiento y una base de datos vectorial, responde a la pregunta.
+You are a Senior Software Architect. Based on the following code context extracted
+from a Knowledge Graph and a vector database, answer the question.
 
-CONTEXTO:
+CONTEXT:
 {context}
 
-PREGUNTA:
+QUESTION:
 {question}
 
-INSTRUCCIÓN: Si no estás seguro, admítelo. Si sugieres cambios, explica a qué otras
-funciones afectará basándote en las relaciones del grafo.
+INSTRUCTION: If you are unsure, admit it. If you suggest changes, explain which other
+functions will be affected based on the graph relationships.
 """
 
 

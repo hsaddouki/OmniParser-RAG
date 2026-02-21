@@ -48,10 +48,10 @@ def extract_imports_from_file(file_path: str, repo_path: Path) -> list[str]:
     return resolved
 
 
-# Lee un archivo a partir de una ruta y extrae las funciones en una lista de diccionarios
+# Read a file and extract all function definitions into a list of dicts
 @trace
 def extract_functions_from_file(file_path: str) -> list[dict]:
-    """Extrae todas las funciones de un archivo de codigo."""
+    """Extract all function definitions from a Python source file."""
     with Path(file_path).open(encoding="utf-8") as file:
         source = file.read()
 
@@ -64,7 +64,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
     functions = []
 
     for node in ast.walk(file_tree):
-        # Comprobamos si el nodo es una definicion de funcion
+        # Check if the node is a function definition
         if isinstance(node, FUNCTION_DEFINITION):
             args = []
             for arg in node.args.args:
@@ -73,19 +73,19 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
                     arg_info["type"] = ast.unparse(arg.annotation)
                 args.append(arg_info)
 
-            # Defaults para argumentos
+            # Default values for arguments
             defaults = [ast.unparse(d) for d in node.args.defaults]
 
             # Return type
             return_type = ast.unparse(node.returns) if node.returns else None
 
-            # Decoradores
+            # Decorators
             decorators = [ast.unparse(d) for d in node.decorator_list]
 
             # Docstring
             docstring = ast.get_docstring(node)
 
-            # Determinar si es método de clase
+            # Determine if this function is a class method
             parent_class = None
             for parent in ast.walk(file_tree):
                 if isinstance(parent, ast.ClassDef):
@@ -116,7 +116,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
 
 @trace
 def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) -> dict:
-    """Analiza todo el repositorio y retorna metadata de funciones."""
+    """Analyze the full repository and return function metadata."""
     exclude_dirs = exclude_dirs or [".git", "__pycache__", ".venv", "venv", "node_modules"]
     repo_path = Path(repo_path)
 
@@ -130,7 +130,7 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
     }
 
     for py_file in repo_path.rglob("*.py"):
-        # Excluir directorios no deseados
+        # Skip excluded directories
         if any(excluded in py_file.parts for excluded in exclude_dirs):
             continue
 
@@ -162,13 +162,13 @@ def run_ingestor(repo_path: str) -> dict:
     from database.code_graph import CodeGraph
     from database.vector_client import VectorClient
 
-    # 1. Analizamos el repositorio y obtenemos el JSON
+    # 1. Analyze the repository and extract metadata
     json_data = analyze_repository(repo_path)
 
-    # 2. Poblamos el grafo (Estructura)
+    # 2. Populate the graph (structure)
     graph = CodeGraph(settings.NEO4J_URI, settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
 
-    # Iteramos sobre las funciones del repositorio
+    # Iterate over all extracted functions
     for func in json_data["functions"]:
         graph.add_function(func["file"], func["name"], func.get("docstring") or "")
 
@@ -176,7 +176,7 @@ def run_ingestor(repo_path: str) -> dict:
     for imp in json_data["imports"]:
         graph.add_import(imp["source"], imp["target"])
 
-    graph.close()  # Cerramos la conexion con la base de datos
+    graph.close()  # Close the database connection
 
     # 3. Indexamos los vectores
     vector_client = VectorClient()
@@ -187,8 +187,8 @@ def run_ingestor(repo_path: str) -> dict:
 
 
 """
-Ejemplo de uso:
-python ingestor.py /ruta/al/repositorio
+Example usage:
+python ingestor.py /path/to/repository
 """
 if __name__ == "__main__":
     import sys

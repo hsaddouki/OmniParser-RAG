@@ -16,14 +16,14 @@ class GraphRetriever:
     @trace
     def retrieve_context(self, query: str, k: int = settings.VECTOR_SEARCH_TOP_K) -> str:
         """
-        Obtenemos el contexto de la base de datos de grafos buscando semánticamente.
+        Retrieves context from both databases using semantic similarity.
 
-        Usa la similitud del coseno para encontrar las unidades de código más similares.
+        Uses cosine similarity to find the most similar code units.
         """
         context_blocks = []
 
-        # 1. Buscamos semanticamente usando ChromaDB
-        logger.info("Buscando semánticamente: %s", query)
+        # 1. Semantic search using ChromaDB
+        logger.info("Running semantic search for: %s", query)
         semantic_results = self.vector_db.search(query, k=k)
         logger.debug("Vector search returned %d result(s):", len(semantic_results))
         for i, r in enumerate(semantic_results):
@@ -35,20 +35,20 @@ class GraphRetriever:
                 r.page_content[:120],
             )
 
-        # 2. Buscamos de forma estructural usando Neo4j
+        # 2. Structural search using Neo4j
         for result in semantic_results:
             func_name = result.metadata["name"]
             file_name = result.metadata["file"]
 
-            # Pedimos a Neo4j que entidades llama a esta función para entender el impacto
+            # Query Neo4j for structural relationships around this function
             structural_context = self.graph_db.get_related_entities(func_name, file_name=file_name)
             logger.debug("  Graph context for %r: %s", func_name, structural_context)
 
             text_block = f"""
-            Unidad de Código: {func_name}
-            Archivo: {file_name}
-            Contenido: {result.page_content}
-            Relaciones en el Grafo: {structural_context}
+            Code Unit: {func_name}
+            File: {file_name}
+            Content: {result.page_content}
+            Graph Relationships: {structural_context}
             """
 
             context_blocks.append(text_block)

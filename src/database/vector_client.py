@@ -23,17 +23,17 @@ class VectorClient:
 
     @trace
     def add_code_units(self, json_data: dict) -> None:
-        """Convierte tu JSON en Documentos de LangChain y los indexa."""
+        """Convert JSON data into LangChain Documents and index them."""
         documents = []
         for entry in json_data:
-            # El contenido que queremos vectorizar es el docstring + nombre
+            # Content to vectorize: function name, docstring, and source body
             content = (
-                f"Función: {entry['name']}\n"
-                f"Descripción: {entry.get('docstring') or ''}\n"
-                f"Código:\n{entry.get('source', '')}"
+                f"Function: {entry['name']}\n"
+                f"Description: {entry.get('docstring') or ''}\n"
+                f"Code:\n{entry.get('source', '')}"
             )
 
-            # Los metadatos son cruciales para filtrar después
+            # Metadata is used for filtering and retrieval
             metadata = {"file": entry["file"], "name": entry["name"], "line": entry["line_start"]}
 
             documents.append(Document(page_content=content, metadata=metadata))
@@ -43,7 +43,7 @@ class VectorClient:
 
     @trace
     def search(self, query: str, k: int = 3) -> list[Document]:
-        """Busca las k unidades de código más similares semánticamente."""
+        """Search for the k most semantically similar code units."""
         results = self.vector_db.similarity_search(query, k=k)
         logger.debug("similarity_search(%r, k=%d) → %d result(s)", query[:60], k, len(results))
         for r in results:

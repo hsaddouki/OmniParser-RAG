@@ -22,7 +22,7 @@ class CodeGraph:
     def add_function(self, file_name: str, func_name: str, docstring: str) -> None:
         """Create or merge a file→function relationship in the graph."""
         with self.driver.session() as session:
-            # Esta consulta Cypher crea el archivo, la función y los conecta
+            # This Cypher query creates the file node, the function node, and links them
             query = """
             MERGE (f:File {name: $file_name})
             MERGE (fn:Function {name: $func_name, file: $file_name})
@@ -79,14 +79,14 @@ class CodeGraph:
                 result["imported_by"],
             )
             return (
-                f"Archivo: {result['file']} | "
-                f"Funciones hermanas: {result['siblings']} | "
-                f"Importado por: {result['imported_by']}"
+                f"File: {result['file']} | "
+                f"Sibling functions: {result['siblings']} | "
+                f"Imported by: {result['imported_by']}"
             )
 
 
 """
-Uso con el oputput JSON
+Usage with JSON output:
 for entry in json_data:
     graph.add_function(entry['file'], entry['name'], entry['docstring'])
 """
