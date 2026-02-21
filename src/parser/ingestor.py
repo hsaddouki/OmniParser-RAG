@@ -1,5 +1,8 @@
 import ast
+import logging
 from pathlib import Path
+
+logger = logging.getLogger("omniparser.ingestor")
 
 FUNCTION_DEFINITION = (ast.FunctionDef, ast.AsyncFunctionDef)
 
@@ -51,7 +54,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
     try:
         file_tree = ast.parse(source, filename=file_path)
     except SyntaxError as e:
-        print(f"Error al analizar el archivo {file_path}: {e}")
+        logger.warning("Syntax error parsing %s: %s", file_path, e)
         return []
 
     functions = []
@@ -172,7 +175,7 @@ def run_ingestor(repo_path: str) -> dict:
     vector_client = VectorClient()
     vector_client.add_code_units(json_data["functions"])
 
-    print("Ingesta completada exitosamente")
+    logger.info("Ingestion completed successfully.")
     return json_data
 
 
@@ -183,8 +186,15 @@ python ingestor.py /ruta/al/repositorio
 if __name__ == "__main__":
     import sys
 
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S",
+    )
+
     repo = sys.argv[1] if len(sys.argv) > 1 else "."
     data = run_ingestor(repo)
 
-    print(f"{data['total_files']} archivos analizados")
-    print(f"{data['total_functions']} funciones encontradas")
+    logger.info(
+        "%d files analysed, %d functions found.", data["total_files"], data["total_functions"]
+    )

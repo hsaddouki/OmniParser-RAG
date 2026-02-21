@@ -1,8 +1,12 @@
+import logging
+
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 
 from config import settings
+
+logger = logging.getLogger("omniparser.vector_client")
 
 
 class VectorClient:
@@ -32,7 +36,7 @@ class VectorClient:
             documents.append(Document(page_content=content, metadata=metadata))
 
         self.vector_db.add_documents(documents)
-        print(f"{len(documents)} unidades de código indexadas en ChromaDB.")
+        logger.info("%d code units indexed in ChromaDB.", len(documents))
 
     def search(self, query: str, k: int = 3) -> list[Document]:
         """Busca las k unidades de código más similares semánticamente."""

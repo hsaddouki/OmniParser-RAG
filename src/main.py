@@ -40,13 +40,13 @@ def load_environment() -> None:
 
 def validate_environment() -> None:
     """Check all required env vars are set; exit with a clear error if not."""
+    logger = logging.getLogger("omniparser.env")
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
     if missing:
-        print(
-            "[ERROR] Missing required environment variables:\n"
-            + "\n".join(f"  - {v}" for v in missing)
-            + "\n\nCopy .env.example to .env and fill in the missing values.",
-            file=sys.stderr,
+        logger.error(
+            "Missing required environment variables:\n%s\n"
+            "Copy .env.example to .env and fill in the missing values.",
+            "\n".join(f"  - {v}" for v in missing),
         )
         sys.exit(1)
 
