@@ -1,6 +1,13 @@
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
 import chromadb
 from neo4j import GraphDatabase
 import requests
+
+from config import settings
 
 
 def test_connections():
@@ -8,9 +15,7 @@ def test_connections():
 
     # 1. Test Ollama
     try:
-        res = requests.get(
-            "http://localhost:11434/api/tags", timeout=5
-        )  # TODO: Usar variables de entorno
+        res = requests.get(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=5)
         if res.status_code == 200:
             print("✅ Ollama: Online")
     except Exception:
@@ -19,8 +24,8 @@ def test_connections():
     # 2. Test Neo4j
     try:
         driver = GraphDatabase.driver(
-            "bolt://localhost:7687", auth=("neo4j", "password123")
-        )  # TODO: Usar variables de entorno
+            settings.NEO4J_URI, auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
+        )
         driver.verify_connectivity()
         print("✅ Neo4j: Online y Autenticado")
         driver.close()
@@ -30,7 +35,7 @@ def test_connections():
     # 3. Test ChromaDB
     try:
         # Si usas Docker para Chroma, usa HttpClient. Si no, PersistentClient.
-        chromadb.HttpClient(host="localhost", port=8000)
+        chromadb.HttpClient(host=settings.CHROMA_HOST, port=settings.CHROMA_PORT)
         print("✅ ChromaDB: Online")
     except Exception:
         print("❌ ChromaDB: Offline")

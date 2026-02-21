@@ -2,21 +2,21 @@ from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 
+from config import settings
+
 
 class VectorClient:
     """ChromaDB-backed vector store for semantic code search."""
 
-    def __init__(self, collection_name: str = "code_base") -> None:
+    def __init__(self, collection_name: str = settings.CHROMA_COLLECTION_NAME) -> None:
         # 1. Configuramos el motor de embeddings local (Ollama)
-        self.embeddings = OllamaEmbeddings(
-            model="mxbai-embed-large"
-        )  # TODO: Cambiar por una variable de entorno configurable
+        self.embeddings = OllamaEmbeddings(model=settings.OLLAMA_EMBEDDING_MODEL)
 
         # 2. Persistencia en disco (carpeta data/chroma)
         self.vector_db = Chroma(
             collection_name=collection_name,
             embedding_function=self.embeddings,
-            persist_directory="./data/chroma_db",
+            persist_directory=settings.CHROMA_PERSIST_PATH,
         )
 
     def add_code_units(self, json_data: dict) -> None:

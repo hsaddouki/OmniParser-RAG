@@ -14,6 +14,8 @@ import sys
 
 from dotenv import load_dotenv
 
+from config import settings
+
 # ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
@@ -56,7 +58,7 @@ def validate_environment() -> None:
 
 def configure_logging() -> None:
     """Set up structured logging based on LOG_LEVEL env var."""
-    level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+    level_name = settings.LOG_LEVEL.upper()
     level = getattr(logging, level_name, logging.INFO)
     logging.basicConfig(
         level=level,
@@ -94,27 +96,25 @@ def cmd_status(args: argparse.Namespace) -> None:
     logger = logging.getLogger("omniparser.status")
 
     # --- Ollama ---
-    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     try:
-        with urllib.request.urlopen(f"{ollama_url}/api/tags", timeout=5) as resp:  # noqa: S310
+        with urllib.request.urlopen(f"{settings.OLLAMA_BASE_URL}/api/tags", timeout=5) as resp:  # noqa: S310
             if resp.status == 200:
-                logger.info("Ollama      [OK]  %s", ollama_url)
+                logger.info("Ollama      [OK]  %s", settings.OLLAMA_BASE_URL)
             else:
                 logger.warning("Ollama      [WARN] status=%d", resp.status)
     except Exception as exc:
-        logger.error("Ollama      [FAILED] %s — %s", ollama_url, exc)
+        logger.error("Ollama      [FAILED] %s — %s", settings.OLLAMA_BASE_URL, exc)
 
     # --- Neo4j ---
     try:
         from neo4j import GraphDatabase  # type: ignore[import]
 
-        uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        user = os.getenv("NEO4J_USERNAME", "neo4j")
-        password = os.getenv("NEO4J_PASSWORD", "")
-        driver = GraphDatabase.driver(uri, auth=(user, password))
+        driver = GraphDatabase.driver(
+            settings.NEO4J_URI, auth=(settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
+        )
         driver.verify_connectivity()
         driver.close()
-        logger.info("Neo4j       [OK]  %s", uri)
+        logger.info("Neo4j       [OK]  %s", settings.NEO4J_URI)
     except Exception as exc:
         logger.error("Neo4j       [FAILED] %s", exc)
 
@@ -122,10 +122,9 @@ def cmd_status(args: argparse.Namespace) -> None:
     try:
         import chromadb  # type: ignore[import]
 
-        persist_path = os.getenv("CHROMA_PERSIST_PATH", "./chroma_data")
-        client = chromadb.PersistentClient(path=persist_path)
+        client = chromadb.PersistentClient(path=settings.CHROMA_PERSIST_PATH)
         client.heartbeat()
-        logger.info("ChromaDB    [OK]  persist_path=%s", persist_path)
+        logger.info("ChromaDB    [OK]  persist_path=%s", settings.CHROMA_PERSIST_PATH)
     except Exception as exc:
         logger.error("ChromaDB    [FAILED] %s", exc)
 
@@ -167,7 +166,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_query.add_argument(
         "--top-k",
         type=int,
-        default=int(os.getenv("VECTOR_SEARCH_TOP_K", "5")),
+        default=settings.VECTOR_SEARCH_TOP_K,
         metavar="N",
         help="Number of vector-search results to retrieve (default: VECTOR_SEARCH_TOP_K env var).",
     )

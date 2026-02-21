@@ -102,6 +102,7 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
 
 def run_ingestor(repo_path: str) -> dict:
     """Ingest a repository: populate the graph and index vectors."""
+    from config import settings
     from database.code_graph import CodeGraph
     from database.vector_client import VectorClient
 
@@ -109,9 +110,7 @@ def run_ingestor(repo_path: str) -> dict:
     json_data = analyze_repository(repo_path)
 
     # 2. Poblamos el grafo (Estructura)
-    graph = CodeGraph(
-        "bolt://localhost:7687", "neo4j", "password"
-    )  # TODO: Cambiar por variables de entorno
+    graph = CodeGraph(settings.NEO4J_URI, settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
 
     # Iteramos sobre las funciones del repositorio
     for func in json_data["functions"]:
