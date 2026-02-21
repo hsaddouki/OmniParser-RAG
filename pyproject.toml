@@ -1,0 +1,144 @@
+[project]
+name = "omniparser-rag"
+version = "0.1.0"
+description = "Local LLM + hybrid GraphRAG for code analysis and generation."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "pre-commit",
+]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py310"
+src = ["src"]
+line-length = 100
+show-fixes = true
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle — whitespace & style
+    "F",        # pyflakes — undefined names, unused imports
+    "I",        # isort — import ordering
+    "TID",      # tidy-imports — ban relative parent imports
+    "N",        # pep8-naming — class/function naming
+    "UP",       # pyupgrade — modern Python 3.10+ syntax
+    "FURB",     # refurb — modern-Python rewrites
+    "B",        # bugbear — common footguns, mutable defaults
+    "S",        # bandit — security (hardcoded passwords, etc.)
+    "A",        # builtins — don't shadow list/dict/type
+    "C4",       # comprehensions — simplify list/dict comprehensions
+    "SIM",      # simplify — simplify boolean expressions
+    "RUF",      # ruff-native checks
+    "PIE",      # misc good-practice micro-rules
+    "RSE",      # raise — unnecessary parentheses
+    "RET",      # return — return statement checks
+    "ARG",      # unused function arguments
+    "PTH",      # pathlib — prefer Path over os.path
+    "LOG",      # logging — correct logger usage
+    "G",        # logging-format — no f-strings in logger calls
+    "D",        # pydocstyle — docstring presence & style
+]
+
+ignore = [
+    # Docstrings — don't require on every module / __init__ / magic method
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+    "D107",  # Missing docstring in __init__
+
+    # Conflicting docstring style rules — pick D211 + D212 (no blank line, multi-line summary on first line)
+    "D203",  # one-blank-line-before-class  (conflicts with D211)
+    "D213",  # multi-line-summary-second-line (conflicts with D212)
+
+    # Line length handled by the formatter
+    "E501",
+
+    # LangChain callbacks need broad exception catches
+    "BLE001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests: allow assert, skip docstrings, allow unused args
+"tests/**" = ["S101", "D", "ARG"]
+
+# main.py: argparse Namespace pattern triggers ARG001
+"src/main.py" = ["ARG001"]
+
+# __init__.py: allow re-exports (F401) and skip docstrings
+"src/**/__init__.py" = ["F401", "D"]
+
+[tool.ruff.lint.isort]
+known-third-party = [
+    "langchain",
+    "langchain_community",
+    "langchain_core",
+    "langgraph",
+    "chromadb",
+    "neo4j",
+    "ollama",
+]
+force-sort-within-sections = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+
+# ---------------------------------------------------------------------------
+# Mypy
+# ---------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = "src"
+warn_return_any = false          # allow returning Any (common with untyped libs)
+warn_unused_configs = true
+no_implicit_optional = true
+disallow_untyped_defs = false    # don't require type annotations on every function
+disallow_incomplete_defs = false # don't require complete annotations
+check_untyped_defs = false       # skip type-checking bodies of unannotated functions
+ignore_missing_imports = true   # third-party stubs mostly absent
+
+# WIP files — suppress errors until type annotations are complete
+[[tool.mypy.overrides]]
+module = ["parser.ingestor"]
+ignore_errors = true
+
+# Silence missing stubs for known third-party packages
+[[tool.mypy.overrides]]
+module = [
+    "requests",
+    "requests.*",
+    "langchain.*",
+    "langchain_community.*",
+    "langchain_core.*",
+    "langgraph.*",
+    "chromadb.*",
+    "neo4j.*",
+    "ollama.*",
+    "astroid.*",
+    "tree_sitter.*",
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+log_cli = true
+log_cli_level = "INFO"
