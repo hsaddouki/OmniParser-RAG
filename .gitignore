@@ -70,5 +70,8 @@ Thumbs.db
 *.log
 logs/
 
+# Plans
+Plans/
+
 # Output
 **/output/

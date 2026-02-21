@@ -88,6 +88,8 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
 
         relative_path = str(py_file.relative_to(repo_path))
         functions = extract_functions_from_file(py_file)
+        for func in functions:
+            func["file"] = relative_path  # normalize absolute → repo-relative
 
         result["files"][relative_path] = {
             "path": relative_path,
