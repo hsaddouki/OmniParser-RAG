@@ -1,6 +1,4 @@
 import ast
-import json
-import os
 from pathlib import Path
 
 FUNCTION_DEFINITION = (ast.FunctionDef, ast.AsyncFunctionDef)
@@ -71,7 +69,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
     return functions
 
 
-def analyze_repository(repo_path: str, exclude_dirs: list[str] = None) -> dict:
+def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) -> dict:
     """Analiza todo el repositorio y retorna metadata de funciones."""
     exclude_dirs = exclude_dirs or [".git", "__pycache__", ".venv", "venv", "node_modules"]
     repo_path = Path(repo_path)
@@ -103,6 +101,30 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] = None) -> dict:
     return result
 
 
+def run_ingestor(repo_path: str) -> dict:
+    from ..database.code_graph import CodeGraph
+    from ..database.vector_client import VectorClient
+
+    # 1. Analizamos el repositorio y obtenemos el JSON
+    json_data = analyze_repository(repo_path)
+
+    # 2. Poblamos el grafo (Estructura)
+    graph = CodeGraph("bolt://localhost:7687", "neo4j", "password") # TODO: Cambiar por variables de entorno
+    
+    # Iteramos sobre las funciones del repositorio
+    for func in json_data["functions"]:
+        graph.add_function(func)
+
+    graph.close() # Cerramos la conexion con la base de datos
+
+    # 3. Indexamos los vectores
+    vector_client = VectorClient()
+    vector_client.add_code_units(json_data)
+
+    print("Ingesta completada exitosamente")
+    return json_data
+
+
 """
 Ejemplo de uso:
 python ingestor.py /ruta/al/repositorio
@@ -111,12 +133,7 @@ if __name__ == "__main__":
     import sys
 
     repo = sys.argv[1] if len(sys.argv) > 1 else "."
-    data = analyze_repository(repo)
-
-    output_file = "src\\parser\\output\\repo_functions.json"
-    with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    data = run_ingestor(repo)
 
     print(f"{data['total_files']} archivos analizados")
     print(f"{data['total_functions']} funciones encontradas")
-    print(f"Guardado en {output_file}")
