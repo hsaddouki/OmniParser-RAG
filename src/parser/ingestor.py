@@ -3,10 +3,11 @@ from pathlib import Path
 
 FUNCTION_DEFINITION = (ast.FunctionDef, ast.AsyncFunctionDef)
 
+
 # Lee un archivo a partir de una ruta y extrae las funciones en una lista de diccionarios
 def extract_functions_from_file(file_path: str) -> list[dict]:
-    """ Extrae todas las funciones de un archivo de codigo."""
-    with open(file_path, "r", encoding="utf-8") as file:
+    """Extrae todas las funciones de un archivo de codigo."""
+    with Path(file_path).open(encoding="utf-8") as file:
         source = file.read()
 
     try:
@@ -22,11 +23,9 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
         if isinstance(node, FUNCTION_DEFINITION):
             args = []
             for arg in node.args.args:
-                arg_info = {
-                    'name': arg.arg
-                }
+                arg_info = {"name": arg.arg}
                 if arg.annotation:
-                    arg_info['type'] = ast.unparse(arg.annotation)
+                    arg_info["type"] = ast.unparse(arg.annotation)
                 args.append(arg_info)
 
             # Defaults para argumentos
@@ -41,7 +40,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
             # Docstring
             docstring = ast.get_docstring(node)
 
-             # Determinar si es método de clase
+            # Determinar si es método de clase
             parent_class = None
             for parent in ast.walk(file_tree):
                 if isinstance(parent, ast.ClassDef):
@@ -102,20 +101,23 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
 
 
 def run_ingestor(repo_path: str) -> dict:
-    from ..database.code_graph import CodeGraph
-    from ..database.vector_client import VectorClient
+    """Ingest a repository: populate the graph and index vectors."""
+    from database.code_graph import CodeGraph
+    from database.vector_client import VectorClient
 
     # 1. Analizamos el repositorio y obtenemos el JSON
     json_data = analyze_repository(repo_path)
 
     # 2. Poblamos el grafo (Estructura)
-    graph = CodeGraph("bolt://localhost:7687", "neo4j", "password") # TODO: Cambiar por variables de entorno
-    
+    graph = CodeGraph(
+        "bolt://localhost:7687", "neo4j", "password"
+    )  # TODO: Cambiar por variables de entorno
+
     # Iteramos sobre las funciones del repositorio
     for func in json_data["functions"]:
         graph.add_function(func)
 
-    graph.close() # Cerramos la conexion con la base de datos
+    graph.close()  # Cerramos la conexion con la base de datos
 
     # 3. Indexamos los vectores
     vector_client = VectorClient()

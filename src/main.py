@@ -1,5 +1,4 @@
-"""
-OmniParser-RAG — CLI entry point.
+"""OmniParser-RAG — CLI entry point.
 
 Usage:
     python src/main.py --help
@@ -42,7 +41,7 @@ def validate_environment() -> None:
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
     if missing:
         print(
-            f"[ERROR] Missing required environment variables:\n"
+            "[ERROR] Missing required environment variables:\n"
             + "\n".join(f"  - {v}" for v in missing)
             + "\n\nCopy .env.example to .env and fill in the missing values.",
             file=sys.stderr,
@@ -87,17 +86,17 @@ def cmd_query(args: argparse.Namespace) -> None:
     logger.info("Query complete (placeholder — not yet implemented).")
 
 
-def cmd_status(args: argparse.Namespace) -> None:  # noqa: ARG001
+def cmd_status(args: argparse.Namespace) -> None:
     """Check live connectivity to Ollama, Neo4j, and ChromaDB."""
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     logger = logging.getLogger("omniparser.status")
 
     # --- Ollama ---
     ollama_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
     try:
-        with urllib.request.urlopen(f"{ollama_url}/api/tags", timeout=5) as resp:
+        with urllib.request.urlopen(f"{ollama_url}/api/tags", timeout=5) as resp:  # noqa: S310
             if resp.status == 200:
                 logger.info("Ollama      [OK]  %s", ollama_url)
             else:
@@ -137,6 +136,7 @@ def cmd_status(args: argparse.Namespace) -> None:  # noqa: ARG001
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build and return the CLI argument parser."""
     parser = argparse.ArgumentParser(
         prog="omniparser-rag",
         description="OmniParser-RAG: local LLM + hybrid GraphRAG for code analysis.",
@@ -186,6 +186,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Parse CLI arguments, validate environment, and dispatch subcommand."""
     load_environment()
     configure_logging()
 
