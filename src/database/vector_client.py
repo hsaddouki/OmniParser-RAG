@@ -5,6 +5,7 @@ from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 
 from config import settings
+from utils import trace
 
 logger = logging.getLogger("omniparser.vector_client")
 
@@ -23,6 +24,7 @@ class VectorClient:
             persist_directory=settings.CHROMA_PERSIST_PATH,
         )
 
+    @trace
     def add_code_units(self, json_data: dict) -> None:
         """Convierte tu JSON en Documentos de LangChain y los indexa."""
         documents = []
@@ -38,6 +40,7 @@ class VectorClient:
         self.vector_db.add_documents(documents)
         logger.info("%d code units indexed in ChromaDB.", len(documents))
 
+    @trace
     def search(self, query: str, k: int = 3) -> list[Document]:
         """Busca las k unidades de código más similares semánticamente."""
         return self.vector_db.similarity_search(query, k=k)

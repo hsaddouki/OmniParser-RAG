@@ -2,11 +2,14 @@ import ast
 import logging
 from pathlib import Path
 
+from utils import trace
+
 logger = logging.getLogger("omniparser.ingestor")
 
 FUNCTION_DEFINITION = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
+@trace
 def extract_imports_from_file(file_path: str, repo_path: Path) -> list[str]:
     """Return repo-relative paths of local modules imported by *file_path*."""
     with Path(file_path).open(encoding="utf-8") as fh:
@@ -46,6 +49,7 @@ def extract_imports_from_file(file_path: str, repo_path: Path) -> list[str]:
 
 
 # Lee un archivo a partir de una ruta y extrae las funciones en una lista de diccionarios
+@trace
 def extract_functions_from_file(file_path: str) -> list[dict]:
     """Extrae todas las funciones de un archivo de codigo."""
     with Path(file_path).open(encoding="utf-8") as file:
@@ -109,6 +113,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
     return functions
 
 
+@trace
 def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) -> dict:
     """Analiza todo el repositorio y retorna metadata de funciones."""
     exclude_dirs = exclude_dirs or [".git", "__pycache__", ".venv", "venv", "node_modules"]
@@ -149,6 +154,7 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
     return result
 
 
+@trace
 def run_ingestor(repo_path: str) -> dict:
     """Ingest a repository: populate the graph and index vectors."""
     from config import settings

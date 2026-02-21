@@ -1,5 +1,7 @@
 from neo4j import GraphDatabase
 
+from utils import trace
+
 
 class CodeGraph:
     """Manages code relationship data in a Neo4j graph database."""
@@ -7,10 +9,12 @@ class CodeGraph:
     def __init__(self, uri: str, user: str, password: str) -> None:
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
 
+    @trace
     def close(self) -> None:
         """Close the Neo4j driver connection."""
         self.driver.close()
 
+    @trace
     def add_function(self, file_name: str, func_name: str, docstring: str) -> None:
         """Create or merge a file→function relationship in the graph."""
         with self.driver.session() as session:
@@ -23,6 +27,7 @@ class CodeGraph:
             """
             session.run(query, file_name=file_name, func_name=func_name, docstring=docstring)
 
+    @trace
     def add_import(self, source_file: str, target_file: str) -> None:
         """Create an IMPORTS relationship between two File nodes."""
         with self.driver.session() as session:
