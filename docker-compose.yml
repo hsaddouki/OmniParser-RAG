@@ -1,0 +1,19 @@
+services:
+  neo4j:
+    image: neo4j:latest
+    container_name: tfm_neo4j
+    ports:
+      - "7474:7474"   # Panel Web (HTTP)
+      - "7687:7687"   # Protocolo Bolt (Python)
+    environment:
+      - NEO4J_AUTH=neo4j/password123  # Cambia esto por tu password
+    volumes:
+      - ./data/neo4j_data:/data
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: tfm_chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/chroma_data:/index_data
