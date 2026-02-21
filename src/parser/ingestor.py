@@ -4,6 +4,44 @@ from pathlib import Path
 FUNCTION_DEFINITION = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
+def extract_imports_from_file(file_path: str, repo_path: Path) -> list[str]:
+    """Return repo-relative paths of local modules imported by *file_path*."""
+    with Path(file_path).open(encoding="utf-8") as fh:
+        source = fh.read()
+
+    try:
+        tree = ast.parse(source, filename=file_path)
+    except SyntaxError:
+        return []
+
+    modules: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                modules.append(alias.name)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.append(node.module)
+            # Also try each imported name as a sub-module
+            # e.g. "from app.services import task_service" -> "app.services.task_service"
+            for alias in node.names:
+                modules.append(f"{node.module}.{alias.name}")
+
+    resolved: list[str] = []
+    for mod in modules:
+        # Convert dotted module name -> possible file paths
+        parts = mod.replace(".", "/")
+        candidates = [
+            repo_path / f"{parts}.py",
+            repo_path / parts / "__init__.py",
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                resolved.append(str(candidate.relative_to(repo_path)))
+                break
+
+    return resolved
+
+
 # Lee un archivo a partir de una ruta y extrae las funciones en una lista de diccionarios
 def extract_functions_from_file(file_path: str) -> list[dict]:
     """Extrae todas las funciones de un archivo de codigo."""
@@ -79,6 +117,7 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
         "total_functions": 0,
         "files": {},
         "functions": [],
+        "imports": [],
     }
 
     for py_file in repo_path.rglob("*.py"):
@@ -90,6 +129,11 @@ def analyze_repository(repo_path: str, exclude_dirs: list[str] | None = None) ->
         functions = extract_functions_from_file(py_file)
         for func in functions:
             func["file"] = relative_path  # normalize absolute → repo-relative
+
+        # Extract local imports
+        imported_files = extract_imports_from_file(py_file, repo_path)
+        for target in imported_files:
+            result["imports"].append({"source": relative_path, "target": target})
 
         result["files"][relative_path] = {
             "path": relative_path,
@@ -117,6 +161,10 @@ def run_ingestor(repo_path: str) -> dict:
     # Iteramos sobre las funciones del repositorio
     for func in json_data["functions"]:
         graph.add_function(func["file"], func["name"], func.get("docstring") or "")
+
+    # Create IMPORTS edges between files
+    for imp in json_data["imports"]:
+        graph.add_import(imp["source"], imp["target"])
 
     graph.close()  # Cerramos la conexion con la base de datos
 

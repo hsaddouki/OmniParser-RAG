@@ -17,11 +17,21 @@ class CodeGraph:
             # Esta consulta Cypher crea el archivo, la función y los conecta
             query = """
             MERGE (f:File {name: $file_name})
-            MERGE (fn:Function {name: $func_name})
+            MERGE (fn:Function {name: $func_name, file: $file_name})
             SET fn.docstring = $docstring
             MERGE (f)-[:CONTAINS]->(fn)
             """
             session.run(query, file_name=file_name, func_name=func_name, docstring=docstring)
+
+    def add_import(self, source_file: str, target_file: str) -> None:
+        """Create an IMPORTS relationship between two File nodes."""
+        with self.driver.session() as session:
+            query = """
+            MERGE (src:File {name: $source})
+            MERGE (tgt:File {name: $target})
+            MERGE (src)-[:IMPORTS]->(tgt)
+            """
+            session.run(query, source=source_file, target=target_file)
 
 
 """
