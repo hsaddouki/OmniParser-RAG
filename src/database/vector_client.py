@@ -14,10 +14,7 @@ class VectorClient:
     """ChromaDB-backed vector store for semantic code search."""
 
     def __init__(self, collection_name: str = settings.CHROMA_COLLECTION_NAME) -> None:
-        # 1. Configuramos el motor de embeddings local (Ollama)
         self.embeddings = OllamaEmbeddings(model=settings.OLLAMA_EMBEDDING_MODEL)
-
-        # 2. Persistencia en disco (carpeta data/chroma)
         self.vector_db = Chroma(
             collection_name=collection_name,
             embedding_function=self.embeddings,
