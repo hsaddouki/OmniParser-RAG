@@ -1,6 +1,10 @@
+import logging
+
 from neo4j import GraphDatabase
 
 from utils import trace
+
+logger = logging.getLogger("omniparser.code_graph")
 
 
 class CodeGraph:
@@ -37,6 +41,48 @@ class CodeGraph:
             MERGE (src)-[:IMPORTS]->(tgt)
             """
             session.run(query, source=source_file, target=target_file)
+
+    @trace
+    def get_related_entities(self, func_name: str, file_name: str | None = None) -> str:
+        """Return a human-readable string of graph relationships for a function."""
+        logger.debug("Graph lookup for func_name=%r file_name=%r", func_name, file_name)
+        with self.driver.session() as session:
+            if file_name:
+                query = """
+                MATCH (fn:Function {name: $func_name, file: $file_name})<-[:CONTAINS]-(f:File)
+                OPTIONAL MATCH (f)-[:CONTAINS]->(sibling:Function)
+                WHERE sibling.name <> $func_name
+                OPTIONAL MATCH (importing:File)-[:IMPORTS]->(f)
+                RETURN f.name AS file,
+                       collect(DISTINCT sibling.name) AS siblings,
+                       collect(DISTINCT importing.name) AS imported_by
+                """
+                result = session.run(query, func_name=func_name, file_name=file_name).single()
+            else:
+                query = """
+                MATCH (fn:Function {name: $func_name})<-[:CONTAINS]-(f:File)
+                OPTIONAL MATCH (f)-[:CONTAINS]->(sibling:Function)
+                WHERE sibling.name <> $func_name
+                OPTIONAL MATCH (importing:File)-[:IMPORTS]->(f)
+                RETURN f.name AS file,
+                       collect(DISTINCT sibling.name) AS siblings,
+                       collect(DISTINCT importing.name) AS imported_by
+                """
+                result = session.run(query, func_name=func_name).single()
+            if not result:
+                logger.debug("  → No node found for %r", func_name)
+                return "No graph relationships found."
+            logger.debug(
+                "  → file=%r  siblings=%r  imported_by=%r",
+                result["file"],
+                result["siblings"],
+                result["imported_by"],
+            )
+            return (
+                f"Archivo: {result['file']} | "
+                f"Funciones hermanas: {result['siblings']} | "
+                f"Importado por: {result['imported_by']}"
+            )
 
 
 """

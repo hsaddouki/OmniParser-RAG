@@ -107,6 +107,7 @@ def extract_functions_from_file(file_path: str) -> list[dict]:
                 "defaults": defaults,
                 "return_type": return_type,
                 "docstring": docstring,
+                "source": ast.get_source_segment(source, node) or "",
             }
             functions.append(func_info)
 

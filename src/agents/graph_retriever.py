@@ -1,5 +1,6 @@
 import logging
 
+from config import settings
 from utils import trace
 
 logger = logging.getLogger("omniparser.graph_retriever")
@@ -13,7 +14,7 @@ class GraphRetriever:
         self.graph_db = neo4j_client
 
     @trace
-    def retrieve_context(self, query: str) -> str:
+    def retrieve_context(self, query: str, k: int = settings.VECTOR_SEARCH_TOP_K) -> str:
         """
         Obtenemos el contexto de la base de datos de grafos buscando semánticamente.
 
@@ -23,7 +24,16 @@ class GraphRetriever:
 
         # 1. Buscamos semanticamente usando ChromaDB
         logger.info("Buscando semánticamente: %s", query)
-        semantic_results = self.vector_db.search(query, k=2)
+        semantic_results = self.vector_db.search(query, k=k)
+        logger.debug("Vector search returned %d result(s):", len(semantic_results))
+        for i, r in enumerate(semantic_results):
+            logger.debug(
+                "  [%d] name=%r  file=%r  content=%r",
+                i,
+                r.metadata.get("name"),
+                r.metadata.get("file"),
+                r.page_content[:120],
+            )
 
         # 2. Buscamos de forma estructural usando Neo4j
         for result in semantic_results:
@@ -31,7 +41,8 @@ class GraphRetriever:
             file_name = result.metadata["file"]
 
             # Pedimos a Neo4j que entidades llama a esta función para entender el impacto
-            structural_context = self.graph_db.get_related_entities(func_name)
+            structural_context = self.graph_db.get_related_entities(func_name, file_name=file_name)
+            logger.debug("  Graph context for %r: %s", func_name, structural_context)
 
             text_block = f"""
             Unidad de Código: {func_name}
@@ -42,4 +53,6 @@ class GraphRetriever:
 
             context_blocks.append(text_block)
 
-        return "\n".join(context_blocks)
+        full_context = "\n".join(context_blocks)
+        logger.debug("Assembled context (%d chars):\n%s", len(full_context), full_context[:800])
+        return full_context

@@ -27,7 +27,11 @@ class VectorClient:
         documents = []
         for entry in json_data:
             # El contenido que queremos vectorizar es el docstring + nombre
-            content = f"Función: {entry['name']}\nDescripción: {entry.get('docstring') or ''}"
+            content = (
+                f"Función: {entry['name']}\n"
+                f"Descripción: {entry.get('docstring') or ''}\n"
+                f"Código:\n{entry.get('source', '')}"
+            )
 
             # Los metadatos son cruciales para filtrar después
             metadata = {"file": entry["file"], "name": entry["name"], "line": entry["line_start"]}
@@ -40,4 +44,8 @@ class VectorClient:
     @trace
     def search(self, query: str, k: int = 3) -> list[Document]:
         """Busca las k unidades de código más similares semánticamente."""
-        return self.vector_db.similarity_search(query, k=k)
+        results = self.vector_db.similarity_search(query, k=k)
+        logger.debug("similarity_search(%r, k=%d) → %d result(s)", query[:60], k, len(results))
+        for r in results:
+            logger.debug("  name=%r  file=%r", r.metadata.get("name"), r.metadata.get("file"))
+        return results

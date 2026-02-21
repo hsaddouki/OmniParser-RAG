@@ -81,11 +81,22 @@ def cmd_ingest(args: argparse.Namespace) -> None:
 
 
 def cmd_query(args: argparse.Namespace) -> None:
-    """Placeholder: run a RAG query against the indexed codebase."""
+    """Run a RAG query against the indexed codebase."""
     logger = logging.getLogger("omniparser.query")
-    logger.info("Query: %r  (top_k=%d)", args.question, args.top_k)
-    # TODO: implement hybrid retrieval (ChromaDB + Neo4j) → LLM generation
-    logger.info("Query complete (placeholder — not yet implemented).")
+    from agents.graph_retriever import GraphRetriever
+    from agents.llm_client import LLMClient
+    from database.code_graph import CodeGraph
+    from database.vector_client import VectorClient
+
+    graph_db = CodeGraph(settings.NEO4J_URI, settings.NEO4J_USERNAME, settings.NEO4J_PASSWORD)
+    vector_db = VectorClient()
+    retriever = GraphRetriever(vector_client=vector_db, neo4j_client=graph_db)
+    client = LLMClient(retriever=retriever)
+
+    logger.info("Query: %r", args.question)
+    answer = client.ask(args.question, top_k=args.top_k)
+    print(answer)
+    graph_db.close()
 
 
 def cmd_status(args: argparse.Namespace) -> None:
