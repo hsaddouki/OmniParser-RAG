@@ -46,6 +46,7 @@ Source Code
 | **Python 3.10+** | |
 | **Ollama** | Running locally at `http://localhost:11434`. [Install](https://ollama.com) |
 | **Docker + Docker Compose** | For Neo4j and ChromaDB containers |
+| **FastAPI + Uvicorn** | Web chat server — installed via `requirements.txt` |
 
 ### Pull required Ollama models
 
@@ -90,6 +91,8 @@ Services started:
 | ChromaDB | 8000 | http://localhost:8000 |
 
 The default Neo4j credentials set in `docker-compose.yml` are `neo4j / password123`. Update `NEO4J_PASSWORD` in your `.env` file to match.
+
+> **Note:** ChromaDB occupies port 8000. The web chat server defaults to port **8080** to avoid conflict.
 
 ---
 
@@ -147,6 +150,26 @@ Options:
 | `question` | *(required)* | Natural-language question or code generation prompt |
 | `--top-k N` | `5` (env: `VECTOR_SEARCH_TOP_K`) | Number of vector-search results to retrieve |
 
+### Start the web chat UI
+
+Launch a local web server with a browser-based chat interface:
+
+```bash
+python src/main.py serve
+```
+
+Then open **http://localhost:8080** in your browser.
+
+The chat page lets you type questions and receive answers in a dark-themed UI. Responses preserve code formatting and newlines. Press **Enter** to send, **Shift+Enter** for a newline. Adjust `top_k` inline per query.
+
+Options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--host HOST` | `0.0.0.0` | Bind host (`0.0.0.0` = all interfaces, works with both `localhost` and `127.0.0.1`) |
+| `--port PORT` | `8080` | Bind port (8080 avoids conflict with ChromaDB on 8000) |
+| `--reload` | off | Enable uvicorn auto-reload for development |
+
 ---
 
 ## Configuration
@@ -177,7 +200,10 @@ Copy `.env.example` to `.env` and set the values below. All settings have sensib
 ```
 OmniParser-RAG/
 ├── src/
-│   ├── main.py                  # CLI entry point (ingest / query / status)
+│   ├── main.py                  # CLI entry point (ingest / query / status / serve)
+│   ├── server.py                # FastAPI web server (chat UI backend)
+│   ├── static/
+│   │   └── index.html           # Tailwind CSS chat frontend (no build step)
 │   ├── config/
 │   │   └── settings.py          # Env var loading and defaults
 │   ├── agents/
@@ -209,6 +235,7 @@ OmniParser-RAG/
 | `query` CLI command | ✅ Implemented | Full end-to-end |
 | `status` CLI command | ✅ Implemented | Connectivity checks |
 | AST-based Python parser | ✅ Implemented | `src/parser/ingestor.py` |
+| Web chat UI (`serve`) | ✅ Implemented | FastAPI + Tailwind, no build step — `http://localhost:8080` |
 | `ingest` CLI command | ⚠️ Placeholder | Parser exists; pipeline not wired to CLI yet |
 | Self-correcting loop | ❌ Planned | Retry logic on generation errors |
 | Class hierarchy extraction | ❌ Planned | Extract and graph class inheritance |

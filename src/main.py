@@ -245,8 +245,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Bind port (default: 8000).",
+        default=8080,
+        help="Bind port (default: 8080).",
     )
     p_serve.add_argument(
         "--reload",

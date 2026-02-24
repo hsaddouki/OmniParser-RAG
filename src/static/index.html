@@ -104,7 +104,14 @@
         body: JSON.stringify({ question, top_k: topK })
       })
       .then(r => {
-        if (!r.ok) return r.json().then(e => Promise.reject(e));
+        if (!r.ok) {
+          // Read body once as text, then try to parse as JSON (FastAPI errors)
+          // or fall back to raw text (plain 500 responses)
+          return r.text().then(text => {
+            try { return Promise.reject(JSON.parse(text)); }
+            catch { return Promise.reject({ detail: text || `HTTP ${r.status}` }); }
+          });
+        }
         return r.json();
       })
       .then(data => appendMessage('assistant', data.answer))
