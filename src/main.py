@@ -73,11 +73,42 @@ def configure_logging() -> None:
 
 
 def cmd_ingest(args: argparse.Namespace) -> None:
-    """Placeholder: ingest a source code repository into ChromaDB + Neo4j."""
+    """Ingest a source code repository into ChromaDB + Neo4j."""
+    from pathlib import Path
+
+    from parser.ingestor import run_ingestor
+
     logger = logging.getLogger("omniparser.ingest")
-    logger.info("Ingestion started for repo: %s (language: %s)", args.repo_path, args.language)
-    # TODO: implement ingestion pipeline (parser → embedder → vector store + graph store)
-    logger.info("Ingestion complete (placeholder — not yet implemented).")
+
+    # Validate repo path exists
+    repo_path = Path(args.repo_path).resolve()
+    if not repo_path.is_dir():
+        logger.error("Repository path does not exist or is not a directory: %s", repo_path)
+        sys.exit(1)
+
+    # Warn if unsupported language requested
+    if args.language != "python":
+        logger.warning(
+            "Language %r is not yet supported — only Python is available. Proceeding with Python parser.",
+            args.language,
+        )
+
+    logger.info("Ingestion started for repo: %s", repo_path)
+
+    try:
+        data = run_ingestor(str(repo_path))
+    except Exception as exc:
+        logger.error(
+            "Ingestion failed. Ensure Ollama, Neo4j, and ChromaDB are running. Error: %s", exc
+        )
+        sys.exit(1)
+
+    logger.info(
+        "Ingestion complete — %d file(s) analysed, %d function(s) indexed, %d import relationship(s) created.",
+        data["total_files"],
+        data["total_functions"],
+        len(data.get("imports", [])),
+    )
 
 
 def cmd_query(args: argparse.Namespace) -> None:
