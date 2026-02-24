@@ -75,3 +75,6 @@ Plans/
 
 # Output
 **/output/
+
+# Claude
+.claude/
