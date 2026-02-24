@@ -10,6 +10,7 @@ Usage:
 import argparse
 import logging
 import os
+from pathlib import Path
 import sys
 
 from dotenv import load_dotenv
@@ -130,6 +131,22 @@ def cmd_query(args: argparse.Namespace) -> None:
     graph_db.close()
 
 
+def cmd_serve(args: argparse.Namespace) -> None:
+    """Start the FastAPI chat server."""
+    import uvicorn
+
+    logger = logging.getLogger("omniparser.serve")
+    logger.info("Starting server on http://%s:%d", args.host, args.port)
+    uvicorn.run(
+        "server:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        app_dir=str(Path(__file__).parent),
+        log_level=settings.LOG_LEVEL.lower(),
+    )
+
+
 def cmd_status(args: argparse.Namespace) -> None:
     """Check live connectivity to Ollama, Neo4j, and ChromaDB."""
     import urllib.error
@@ -217,6 +234,27 @@ def build_parser() -> argparse.ArgumentParser:
     # status
     p_status = sub.add_parser("status", help="Check connectivity to Ollama, Neo4j, and ChromaDB.")
     p_status.set_defaults(func=cmd_status)
+
+    # serve
+    p_serve = sub.add_parser("serve", help="Start the web chat server.")
+    p_serve.add_argument(
+        "--host",
+        default="0.0.0.0",  # noqa: S104
+        help="Bind host (default: 0.0.0.0 — all interfaces).",
+    )
+    p_serve.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Bind port (default: 8000).",
+    )
+    p_serve.add_argument(
+        "--reload",
+        action="store_true",
+        default=False,
+        help="Enable uvicorn auto-reload (development only).",
+    )
+    p_serve.set_defaults(func=cmd_serve)
 
     return parser
 

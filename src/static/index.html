@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OmniParser-RAG Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex-shrink-0">
+    <h1 class="text-xl font-semibold text-white">OmniParser-RAG</h1>
+    <p class="text-sm text-gray-400">Code Analysis Chat</p>
+  </header>
+
+  <!-- Message area -->
+  <main id="messages" class="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+    <div class="flex justify-start">
+      <div class="bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 max-w-2xl text-sm text-gray-200 whitespace-pre-wrap">
+        Hello! Ask me anything about your indexed codebase.
+      </div>
+    </div>
+  </main>
+
+  <!-- Loading indicator -->
+  <div id="loading" class="hidden px-6 pb-2 text-sm text-gray-400 italic">Thinking…</div>
+
+  <!-- Input area -->
+  <footer class="bg-gray-800 border-t border-gray-700 px-4 py-4 flex-shrink-0">
+    <div class="flex items-end gap-3 max-w-4xl mx-auto">
+      <textarea
+        id="input"
+        rows="1"
+        placeholder="Ask a question… (Enter to send, Shift+Enter for newline)"
+        class="flex-1 bg-gray-700 text-gray-100 placeholder-gray-500 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+        style="min-height: 44px; max-height: 160px;"
+      ></textarea>
+      <div class="flex flex-col items-center gap-1">
+        <label class="text-xs text-gray-500">top_k</label>
+        <input
+          id="topk"
+          type="number"
+          value="5"
+          min="1"
+          max="20"
+          class="w-16 bg-gray-700 text-gray-100 text-sm text-center rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+      <button
+        id="send"
+        class="bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white rounded-xl px-5 py-3 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        Send
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl    = document.getElementById('input');
+    const sendBtn    = document.getElementById('send');
+    const loadingEl  = document.getElementById('loading');
+    const topkEl     = document.getElementById('topk');
+
+    function appendMessage(role, text) {
+      const wrapper = document.createElement('div');
+      wrapper.className = role === 'user'
+        ? 'flex justify-end'
+        : 'flex justify-start';
+
+      const bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'bg-blue-600 rounded-2xl rounded-tr-sm px-4 py-3 max-w-2xl text-sm text-white whitespace-pre-wrap'
+        : role === 'error'
+          ? 'bg-red-800 rounded-2xl rounded-tl-sm px-4 py-3 max-w-2xl text-sm text-red-200 whitespace-pre-wrap'
+          : 'bg-gray-700 rounded-2xl rounded-tl-sm px-4 py-3 max-w-2xl text-sm text-gray-200 whitespace-pre-wrap';
+
+      bubble.textContent = text;
+      wrapper.appendChild(bubble);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setLoading(on) {
+      loadingEl.classList.toggle('hidden', !on);
+      sendBtn.disabled = on;
+      inputEl.disabled = on;
+    }
+
+    function submit() {
+      const question = inputEl.value.trim();
+      if (!question) return;
+
+      const topK = parseInt(topkEl.value, 10) || 5;
+      appendMessage('user', question);
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
+      setLoading(true);
+
+      fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, top_k: topK })
+      })
+      .then(r => {
+        if (!r.ok) return r.json().then(e => Promise.reject(e));
+        return r.json();
+      })
+      .then(data => appendMessage('assistant', data.answer))
+      .catch(err => {
+        const msg = err?.detail ?? err?.message ?? 'Request failed.';
+        appendMessage('error', msg);
+      })
+      .finally(() => setLoading(false));
+    }
+
+    sendBtn.addEventListener('click', submit);
+
+    inputEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submit();
+      }
+    });
+
+    // Auto-resize textarea
+    inputEl.addEventListener('input', () => {
+      inputEl.style.height = 'auto';
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
+    });
+  </script>
+
+</body>
+</html>
